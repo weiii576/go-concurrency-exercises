@@ -61,8 +61,55 @@ UserID: 0 	Process 1 done. <--
 UserID: 0 	Process 3 done. <--
 UserID: 0 	Process 4 killed. (No quota left) <--
 ```
+# Advanced Level
+10s max per user (accumulated)
 
+## Wanted Result
 
+```
+Process 1 done.
+Process 2 done.
+Process 3 killed. (No quota left).
+Process 4 killed. (No quota left).
+Process 5 done.
+```
 
+## Solution
 
+Using `time.NewTicker(time.Second)` to send signal to trigger adding `TimeUsed` one time a second.
 
+```go
+func HandleRequest(process func(), u *User) bool {
+	if !u.IsPremium {
+		done := make(chan int)
+
+		go func() {
+			process()
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			return true
+		case <-time.After(time.Second * 10):
+			return false
+		}
+	}
+
+	return true
+}
+```
+
+### Result
+```
+UserID: 0 	Process 1 started.
+UserID: 1 	Process 2 started.
+UserID: 0 	Process 3 started.
+UserID: 0 	Process 4 started.
+UserID: 1 	Process 5 started.
+UserID: 0 	Process 1 done. <--
+UserID: 0 	Process 4 killed. (No quota left) <--
+UserID: 0 	Process 3 killed. (No quota left) <--
+UserID: 1 	Process 5 done. <--
+UserID: 1 	Process 2 done. <--
+```
