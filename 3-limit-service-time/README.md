@@ -44,6 +44,7 @@ func HandleRequest(process func(), u *User) bool {
 		}
 	}
 
+	process()
 	return true
 }
 ```
